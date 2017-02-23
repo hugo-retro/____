@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -9,20 +10,20 @@ import (
 )
 
 type Cache struct {
-	cache int64
+	cache   int64
 	latency int64
 }
 
 type EndPoint struct {
-	latency int64
+	latency    int64
 	num_caches int64
-	caches []Cache
+	caches     []Cache
 }
 
 type Request struct {
-  num_requests int64
-  video int64
-  endpoint int64
+	num_requests int64
+	video        int64
+	endpoint     int64
 }
 
 var num_videos int64
@@ -55,6 +56,8 @@ func parseEndpoint(lines []string, offset int64) int64 {
 		}
 	}
 
+	fmt.Println(ep.num_caches)
+
 	return ep.num_caches
 }
 
@@ -82,10 +85,15 @@ func readFile(filename string) {
 
 	readVideos(lines)
 
+	fmt.Println(offset)
 	// Parse the endpoints and their
 	for x = 0; x < num_endpoints; x++ {
 		offset += parseEndpoint(lines, offset) + 1
 	}
+
+	fmt.Println(offset)
+
+	//readRequest(lines[offset:])
 }
 
 func writeOutput(filename string, lines []string) {
@@ -124,5 +132,18 @@ func readVideos(lines []string) {
 
 	for i := 0; i < len(strs); i++ {
 		videos = append(videos, to.Int64(strings.TrimSpace(strs[i])))
+	}
+}
+
+func readRequest(lines []string) {
+	for i := 0; i < len(lines); i++ {
+		options := strings.Split(lines[i], " ")
+
+		fmt.Println(options)
+		/*var vid = to.Int64(options[0])
+		var end = to.Int64(options[1])
+		var numReq = to.Int64(options[2])
+		requests = append(requests, Request{to.Int64(numReq), to.Int64(vid), to.Int64(end)})
+		//fmt.Println(requests[len(requests)-1])*/
 	}
 }
