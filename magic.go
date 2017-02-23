@@ -34,6 +34,8 @@ var videos []int64
 var endpoints []EndPoint
 var requests []Request
 
+var res_lines []string
+
 func parseCache(lines []string, offset int64, ep EndPoint) {
 	//print("parseCache ", offset, " ", lines[offset],"\n")
 	parts := strings.Split(lines[offset], " ")
@@ -105,7 +107,7 @@ func readFile(filename string) {
 	readRequest(lines[offset:])
 }
 
-func writeOutput(filename string, lines []string) {
+func writeOutput(filename string) {
 	tempFilename := filename + ".out"
 
 	file, err := os.OpenFile(tempFilename, os.O_RDWR|os.O_CREATE, 0600)
@@ -115,14 +117,14 @@ func writeOutput(filename string, lines []string) {
 		os.Exit(1)
 	}
 
-	for _, line := range lines {
+	for _, line := range res_lines {
 		file.WriteString(line)
 		file.WriteString("\n")
 	}
 }
 
-func magic(lines []string) []string {
-	return lines
+func magic() {
+
 }
 
 func main() {
@@ -134,4 +136,6 @@ func main() {
 	filename := os.Args[1]
 
 	readFile(filename)
+  magic()
+  writeOutput(filename)
 }
