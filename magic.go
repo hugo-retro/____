@@ -34,6 +34,7 @@ var num_caches int64
 var cache_size int64
 var videos []int
 var endpoints []EndPoint
+var requests []Request
 
 func parseCache(lines []string, offset int64, ep EndPoint) {
 	//print("parseCache ", offset, " ", lines[offset],"\n")
