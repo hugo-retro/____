@@ -35,16 +35,14 @@ var endpoints []EndPoint
 var requests []Request
 
 func parseCache(lines []string, offset int64, ep EndPoint) {
-	//print("parseCache ", offset, " ", lines[offset],"\n")
 	parts := strings.Split(lines[offset], " ")
 	c := Cache{to.Int64(parts[0]), to.Int64(parts[1])}
 	ep.caches = append(ep.caches, c)
 }
 
 func parseEndpoint(lines []string, offset int64) int64 {
-	//print("parseEndpoint ", offset, " ", lines[offset], " ", "\n")
 	parts := strings.Split(lines[offset], " ")
-	ep := EndPoint{to.Int64(parts[0]), to.Int64(parts[1]), make([]Cache, 0)}
+	ep := EndPoint{to.Int64(parts[0]), to.Int64(strings.TrimSpace(parts[1])), make([]Cache, 0)}
 	endpoints = append(endpoints, ep)
 
 	var x int64
@@ -59,18 +57,18 @@ func parseEndpoint(lines []string, offset int64) int64 {
 }
 
 func readVideos(lines []string) {
-  strs := strings.Split(lines[1], " ")
+	strs := strings.Split(lines[1], " ")
 
-  for i := 0; i < len(strs); i++ {
-    videos = append(videos, to.Int64(strings.TrimSpace(strs[i])))
-  }
+	for i := 0; i < len(strs); i++ {
+		videos = append(videos, to.Int64(strings.TrimSpace(strs[i])))
+	}
 }
 
 func readRequest(lines []string) {
-  for i := 0; i < len(lines) - 1; i++ {
-    options := strings.Split(lines[i], " ")
-    requests = append(requests, Request{to.Int64(options[2]), to.Int64(options[0]), to.Int64(options[1])})
-  }
+	for i := 0; i < len(lines)-1; i++ {
+		options := strings.Split(lines[i], " ")
+		requests = append(requests, Request{to.Int64(options[2]), to.Int64(options[0]), to.Int64(options[1])})
+	}
 }
 
 func readFile(filename string) {
