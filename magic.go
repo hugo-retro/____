@@ -75,6 +75,8 @@ func readFile(filename string) {
 	var offset int64 = 2
 	var x int64
 
+	readVideos(lines)
+
 	// Parse the endpoints and their
 	for x = 0; x < num_endpoints; x++ {
 		offset += parseEndpoint(lines, offset) + 1
@@ -112,7 +114,7 @@ func main() {
 	readFile(filename)
 }
 
-func readVideos(lines []string) []string {
+func readVideos(lines []string) {
 
 	var strs = strings.Split(lines[1], " ")
 
@@ -126,5 +128,4 @@ func readVideos(lines []string) []string {
 			videos = append(videos, video)
 		}
 	}
-	return lines[1 : len(lines)-1]
 }
