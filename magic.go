@@ -58,6 +58,21 @@ func parseEndpoint(lines []string, offset int64) int64 {
 	return ep.num_caches
 }
 
+func readVideos(lines []string) {
+  strs := strings.Split(lines[1], " ")
+
+  for i := 0; i < len(strs); i++ {
+    videos = append(videos, to.Int64(strings.TrimSpace(strs[i])))
+  }
+}
+
+func readRequest(lines []string) {
+  for i := 0; i < len(lines) - 1; i++ {
+    options := strings.Split(lines[i], " ")
+    requests = append(requests, Request{to.Int64(options[2]), to.Int64(options[0]), to.Int64(options[1])})
+  }
+}
+
 func readFile(filename string) {
 	var lines []string
 
@@ -119,19 +134,4 @@ func main() {
 	filename := os.Args[1]
 
 	readFile(filename)
-}
-
-func readVideos(lines []string) {
-	strs := strings.Split(lines[1], " ")
-
-	for i := 0; i < len(strs); i++ {
-		videos = append(videos, to.Int64(strings.TrimSpace(strs[i])))
-	}
-}
-
-func readRequest(lines []string) {
-	for i := 0; i < len(lines) - 1; i++ {
-		options := strings.Split(lines[i], " ")
-		requests = append(requests, Request{to.Int64(options[2]), to.Int64(options[0]), to.Int64(options[1])})
-	}
 }
