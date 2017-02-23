@@ -4,16 +4,52 @@ import (
   "io/ioutil"
   "strings"
   "os"
-  "strconv"
+  "menteslibres.net/gosexy/to"
 )
 
-var num_videos int;
-var num_endpoints int;
-var num_requests int;
-var num_caches int;
-var cache_size int;
+type Cache struct {
+  cache int64
+  latency int64
+}
 
-func readFile(filename string) ([]string) {
+type EndPoint struct {
+  latency int64
+  num_caches int64
+  caches []Cache
+}
+
+var num_videos int64;
+var num_endpoints int64;
+var num_requests int64;
+var num_caches int64;
+var cache_size int64;
+var endpoints []EndPoint;
+
+func parseCache(lines [] string, offset int64, ep EndPoint) {
+  //print("parseCache ", offset, " ", lines[offset],"\n")
+  parts := strings.Split(lines[offset], " ")
+  c := Cache{to.Int64(parts[0]), to.Int64(parts[1])}
+  ep.caches = append(ep.caches, c)
+}
+
+func parseEndpoint(lines []string, offset int64) (int64) {
+  //print("parseEndpoint ", offset, " ", lines[offset], " ", "\n")
+  parts := strings.Split(lines[offset], " ")
+  ep := EndPoint{to.Int64(parts[0]), to.Int64(parts[1]), make([]Cache, 0)}
+  endpoints = append(endpoints, ep)
+
+  var x int64;
+
+  if ep.num_caches > 0 {
+    for x = 0; x < ep.num_caches; x++ {
+      parseCache(lines, offset + x + 1, ep)
+    }
+  }
+
+  return ep.num_caches
+}
+
+func readFile(filename string) {
   var lines []string;
 
   content, err := ioutil.ReadFile(filename)
@@ -26,13 +62,19 @@ func readFile(filename string) ([]string) {
   lines = strings.Split(string(content), "\n")
 
   nrs := strings.Split(lines[0], " ")
-  num_videos, err = strconv.Atoi(nrs[0])
-  num_endpoints, err = strconv.Atoi(nrs[1])
-  num_requests, err = strconv.Atoi(nrs[2])
-  num_caches, err = strconv.Atoi(nrs[3])
-  cache_size, err = strconv.Atoi(nrs[4])
+  num_videos = to.Int64(nrs[0])
+  num_endpoints = to.Int64(nrs[1])
+  num_requests = to.Int64(nrs[2])
+  num_caches = to.Int64(nrs[3])
+  cache_size = to.Int64(nrs[4])
 
-  return lines[1:len(lines) - 1]
+  var offset int64 = 2;
+  var x int64;
+
+  // Parse the endpoints and their
+  for x = 0; x < num_endpoints; x++ {
+    offset += parseEndpoint(lines, offset) + 1
+  }
 }
 
 func writeOutput(filename string, lines []string) {
@@ -63,5 +105,5 @@ func main() {
 
   filename := os.Args[1]
 
-  writeOutput(filename, magic(readFile(filename)))
+  readFile(filename)
 }
