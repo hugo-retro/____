@@ -1,27 +1,39 @@
 package main
 
 import (
-  "fmt"
   "io/ioutil"
   "strings"
   "os"
 )
 
-func readFile(filename string) ([]string, error) {
+func readFile(filename string) ([]string) {
   var lines []string;
 
   content, err := ioutil.ReadFile(filename)
 
-  if err == nil {
-    lines = strings.Split(string(content), "\n")
+  if err != nil {
+    print("Failed to open ", filename, err)
+    os.Exit(1)
   }
 
-  return lines[:len(lines) - 1], err
+  lines = strings.Split(string(content), "\n")
+
+  return lines[:len(lines) - 1]
 }
 
-func writeOutput(lines []string) {
+func writeOutput(filename string, lines []string) {
+  tempFilename := filename + ".out"
+
+  file, err := os.OpenFile(tempFilename, os.O_RDWR|os.O_CREATE, 0600)
+
+  if err != nil {
+    println("Failed to open ", tempFilename, err.Error())
+    os.Exit(1)
+  }
+
   for _,line := range lines {
-    fmt.Println(line)
+    file.WriteString(line)
+    file.WriteString("\n")
   }
 }
 
@@ -30,13 +42,12 @@ func magic(lines []string) ([]string) {
 }
 
 func main() {
-  // TODO: Add check here for argv not having at least the filename
-  lines, err := readFile(os.Args[1])
-
-  if err != nil {
-    fmt.Println("reading file failed! Reason: ", err)
+  if len(os.Args) == 1 {
+    println("Usage: go run magic.go filename")
     os.Exit(1)
   }
 
-  writeOutput(magic(lines))
+  filename := os.Args[1]
+
+  writeOutput(filename, magic(readFile(filename)))
 }
