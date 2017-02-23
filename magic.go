@@ -4,7 +4,14 @@ import (
   "io/ioutil"
   "strings"
   "os"
+  "strconv"
 )
+
+var num_videos int;
+var num_endpoints int;
+var num_requests int;
+var num_caches int;
+var cache_size int;
 
 func readFile(filename string) ([]string) {
   var lines []string;
@@ -18,7 +25,14 @@ func readFile(filename string) ([]string) {
 
   lines = strings.Split(string(content), "\n")
 
-  return lines[:len(lines) - 1]
+  nrs := strings.Split(lines[0], " ")
+  num_videos, err = strconv.Atoi(nrs[0])
+  num_endpoints, err = strconv.Atoi(nrs[1])
+  num_requests, err = strconv.Atoi(nrs[2])
+  num_caches, err = strconv.Atoi(nrs[3])
+  cache_size, err = strconv.Atoi(nrs[4])
+
+  return lines[1:len(lines) - 1]
 }
 
 func writeOutput(filename string, lines []string) {
