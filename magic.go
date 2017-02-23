@@ -1,24 +1,22 @@
 package main
 
 import (
-	"fmt"
 	"io/ioutil"
 	"os"
-	"strconv"
 	"strings"
 
 	"menteslibres.net/gosexy/to"
 )
 
 type Cache struct {
-	cache   int64
+	cache int64
 	latency int64
 }
 
 type EndPoint struct {
-	latency    int64
+	latency int64
 	num_caches int64
-	caches     []Cache
+	caches []Cache
 }
 
 type Request struct {
@@ -32,7 +30,7 @@ var num_endpoints int64
 var num_requests int64
 var num_caches int64
 var cache_size int64
-var videos []int
+var videos []int64
 var endpoints []EndPoint
 var requests []Request
 
@@ -122,17 +120,9 @@ func main() {
 }
 
 func readVideos(lines []string) {
-
-	var strs = strings.Split(lines[1], " ")
-
-	fmt.Println(strs[len(strs)-1])
+	strs := strings.Split(lines[1], " ")
 
 	for i := 0; i < len(strs); i++ {
-		var video, err = strconv.Atoi(strings.TrimSpace(strs[i]))
-
-		fmt.Println(video, err)
-		if err == nil {
-			videos = append(videos, video)
-		}
+		videos = append(videos, to.Int64(strings.TrimSpace(strs[i])))
 	}
 }
