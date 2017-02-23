@@ -2,6 +2,7 @@ package main
 
 import (
 	"io/ioutil"
+	"math/rand"
 	"os"
 	"strings"
 
@@ -9,7 +10,7 @@ import (
 )
 
 type Cache struct {
-	cache   int64
+	id      int64
 	latency int64
 }
 
@@ -25,6 +26,36 @@ type Request struct {
 	endpoint     int64
 }
 
+type AlgoCache struct {
+	id        int64
+	storage   int64
+	video     []int64
+	endpoints []CacheEndpoint
+}
+
+type CacheEndpoint struct {
+	latencySaved int64
+	videos       []AlgoVideo
+	endpoint     AlgoEndpoint
+}
+
+type AlgoVideo struct {
+	id           int64
+	size         int64
+	rating       int64
+	requestCount int64
+}
+
+type AlgoEndpoint struct {
+	id          int64
+	baseLatency int64
+	caches      map[int64]int64 // cacheId | latency
+	video       []AlgoVideo
+}
+
+var algoCaches []AlgoCache
+var algoEndpoints []AlgoEndpoint
+
 var num_videos int64
 var num_endpoints int64
 var num_requests int64
@@ -36,7 +67,7 @@ var requests []Request
 
 var res_lines []string
 
-func parseCache(lines []string, offset int64, ep EndPoint) {
+func parseCache(lines []string, offset int64, ep *EndPoint) {
 	parts := strings.Split(lines[offset], " ")
 	c := Cache{to.Int64(parts[0]), to.Int64(parts[1])}
 	ep.caches = append(ep.caches, c)
@@ -45,15 +76,15 @@ func parseCache(lines []string, offset int64, ep EndPoint) {
 func parseEndpoint(lines []string, offset int64) int64 {
 	parts := strings.Split(lines[offset], " ")
 	ep := EndPoint{to.Int64(parts[0]), to.Int64(strings.TrimSpace(parts[1])), make([]Cache, 0)}
-	endpoints = append(endpoints, ep)
 
 	var x int64
 
 	if ep.num_caches > 0 {
 		for x = 0; x < ep.num_caches; x++ {
-			parseCache(lines, offset+x+1, ep)
+			parseCache(lines, offset+x+1, &ep)
 		}
 	}
+	endpoints = append(endpoints, ep)
 
 	return ep.num_caches
 }
@@ -121,8 +152,67 @@ func writeOutput(filename string) {
 	}
 }
 
-func magic() {
+func convert() {
+	algoCaches = []AlgoCache{}
+	var id int64
+	for id = 0; id < num_caches; id++ {
+		algoCache := new(AlgoCache)
+		algoCache.id = id
+		algoCache.storage = cache_size
+		algoCache.video = []int64{}
+		algoCaches = append(algoCaches, *algoCache)
+	}
 
+	algoEndpoints = make([]AlgoEndpoint, len(endpoints))
+	for i, e := range endpoints {
+		ep := new(AlgoEndpoint)
+		ep.id = to.Int64(i)
+		ep.baseLatency = e.latency
+		ep.caches = make(map[int64]int64, e.num_caches)
+		for _, c := range e.caches {
+			ep.caches[c.id] = c.latency
+		}
+		algoEndpoints[i] = *ep
+	}
+
+	for _, req := range requests {
+		vid := new(AlgoVideo)
+		vid.id = req.video
+		vid.requestCount = req.num_requests
+		vid.size = videos[req.video]
+
+		algoEndpoints[req.endpoint].video = append(algoEndpoints[req.endpoint].video, *vid)
+	}
+}
+
+func createResult() {
+	cachesAffected := 0
+	for _, c := range algoCaches {
+		if len(c.video) > 0 {
+			cachesAffected++
+		}
+	}
+	res_lines = make([]string, cachesAffected+1)
+	res_lines[0] = to.String(cachesAffected)
+	pos := 1
+	for id, c := range algoCaches {
+		if len(c.video) > 0 {
+			vids := to.String(id) + " "
+			for _, v := range c.video {
+				vids += to.String(v) + " "
+			}
+			res_lines[pos] = vids
+			pos++
+		}
+	}
+}
+
+func magic() {
+	convert()
+	loopEndpoints()
+	findLonlies()
+	realMagic()
+	createResult()
 }
 
 func main() {
@@ -134,6 +224,128 @@ func main() {
 	filename := os.Args[1]
 
 	readFile(filename)
-  magic()
-  writeOutput(filename)
+	magic()
+	writeOutput(filename)
+}
+
+// Algo
+
+func loopEndpoints() {
+	for _, endpoint := range algoEndpoints {
+		for cacheID, ls := range endpoint.caches {
+			cache := algoCaches[cacheID]
+			cacheEp := new(CacheEndpoint)
+			cacheEp.latencySaved = endpoint.baseLatency - ls
+			cacheEp.endpoint = endpoint
+			cacheEp.videos = make([]AlgoVideo, len(endpoint.video))
+			copy(cacheEp.videos, endpoint.video)
+			for _, vid := range cacheEp.videos {
+				vid.rating = vid.requestCount * cacheEp.latencySaved
+			}
+
+			cache.endpoints = append(cache.endpoints, *cacheEp)
+			algoCaches[cacheID] = cache
+		}
+	}
+}
+
+func realMagic() {
+	for id, cache := range algoCaches {
+		for _, endp := range cache.endpoints {
+			endp.videos = QuickSort(endp.videos)
+			pos := 0
+			for cache.storage > 0 && pos < len(endp.videos) {
+				vid := endp.videos[pos]
+				if cache.storage-vid.size > 0 {
+					cache.video = append(cache.video, vid.id)
+					cache.storage -= vid.size
+					for cid := range endp.endpoint.caches {
+						epCaches := algoCaches[cid]
+						for _, epCEndp := range epCaches.endpoints {
+							if epCEndp.endpoint.id == endp.endpoint.id {
+								delPos := 0
+								for index, epceVid := range epCEndp.videos {
+									index = index - delPos
+									if epceVid.id == vid.id {
+										epCEndp.videos = remove(epCEndp.videos, index)
+										delPos++
+									}
+								}
+							}
+						}
+					}
+				}
+				pos++
+			}
+		}
+		algoCaches[id] = cache
+	}
+}
+
+func findLonlies() {
+	for _, cache := range algoCaches {
+		if len(cache.endpoints) == 1 {
+			endp := cache.endpoints[0]
+			endp.videos = QuickSort(endp.videos)
+			pos := 0
+			for cache.storage > 0 && pos < len(endp.videos) {
+				vid := endp.videos[pos]
+				if cache.storage-vid.size > 0 {
+					cache.video = append(cache.video, vid.id)
+					cache.storage -= vid.size
+					for cid := range endp.endpoint.caches {
+						epCaches := algoCaches[cid]
+						for _, epCEndp := range epCaches.endpoints {
+							if epCEndp.endpoint.id == endp.endpoint.id {
+								for index, epceVid := range epCEndp.videos {
+									if epceVid.id == vid.id {
+										epCEndp.videos = remove(epCEndp.videos, index)
+									}
+								}
+							}
+						}
+					}
+				}
+				pos++
+			}
+		}
+	}
+}
+
+func remove(slice []AlgoVideo, s int) []AlgoVideo {
+	return append(slice[:s], slice[s+1:]...)
+}
+
+func QuickSort(slice []AlgoVideo) []AlgoVideo {
+	length := len(slice)
+
+	if length <= 1 {
+		sliceCopy := make([]AlgoVideo, length)
+		copy(sliceCopy, slice)
+		return sliceCopy
+	}
+
+	m := slice[rand.Intn(length)]
+
+	less := make([]AlgoVideo, 0, length)
+	middle := make([]AlgoVideo, 0, length)
+	more := make([]AlgoVideo, 0, length)
+
+	for _, item := range slice {
+		switch {
+		case item.rating < m.rating:
+			less = append(less, item)
+		case item.rating == m.rating:
+			middle = append(middle, item)
+		case item.rating > m.rating:
+			more = append(more, item)
+		}
+	}
+
+	less, more = QuickSort(less), QuickSort(more)
+
+	less = append(less, middle...)
+	less = append(less, more...)
+
+	return less
 }
