@@ -21,6 +21,12 @@ type EndPoint struct {
 	caches     []Cache
 }
 
+type Request struct {
+  num_requests int64
+  video int64
+  endpoint int64
+}
+
 var num_videos int64
 var num_endpoints int64
 var num_requests int64
