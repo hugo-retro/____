@@ -249,6 +249,15 @@ func loopEndpoints() {
 	}
 }
 
+func contains(s []int64, e int64) bool {
+    for _, a := range s {
+        if a == e {
+            return true
+        }
+    }
+    return false
+}
+
 func realMagic() {
 	for id, cache := range algoCaches {
 		for _, endp := range cache.endpoints {
@@ -256,7 +265,7 @@ func realMagic() {
 			pos := 0
 			for cache.storage > 0 && pos < len(endp.videos) {
 				vid := endp.videos[pos]
-				if cache.storage-vid.size > 0 {
+				if cache.storage-vid.size > 0 && !contains(cache.video, vid.id) {
 					cache.video = append(cache.video, vid.id)
 					cache.storage -= vid.size
 					for cid := range endp.endpoint.caches {
